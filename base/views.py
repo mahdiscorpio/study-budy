@@ -7,7 +7,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from .models import Message, Room, Topic
-from .forms import MessageForm, RoomForm
+from .forms import MessageForm, RoomForm, UserForm
 
 # Create your views here.
 # rooms = [
@@ -74,7 +74,7 @@ def home(request):
     # rooms = Room.objects.filter(topic__name__icontains = q)
     rooms = Room.objects.filter(Q(topic__name__icontains=q) | Q(
         name__icontains=q) | Q(description__icontains=q))
-    topics = Topic.objects.all()
+    topics = Topic.objects.all()[:5]
     room_count = rooms.count()
     room_messages = Message.objects.filter(Q(room__topic__name__icontains=q))
 
@@ -150,10 +150,10 @@ def updateRoom(request, pk):
     if request.method == 'POST':
         topic_name = request.POST.get("topic")
         topic, created = Topic.objects.get_or_create(name=topic_name)
-        
-        room.name=request.POST.get('name')
-        room.description=request.POST.get('description')     
-        room.topic=topic
+
+        room.name = request.POST.get('name')
+        room.description = request.POST.get('description')
+        room.topic = topic
         room.save()
         # form = RoomForm(request.POST, instance=room)
         # if form.is_valid():
@@ -204,3 +204,31 @@ def updateMessage(request, pk):
             return redirect('home')
     context = {'form': form}
     return render(request, 'base/message_edit.html', context)
+
+
+@login_required(login_url='login')
+def updateUser(request):
+    user = request.user
+    form = UserForm(instance=user)
+    if request.method == "POST":
+        form = UserForm(request.POST, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('user-profile', pk=user.id)
+
+    context = {'form': form}
+    return render(request, 'base/update-user.html', context)
+
+
+def topicsPage(request):
+    q = request.GET.get('q') if request.GET.get('q') != None else ''
+    topics = Topic.objects.filter(name__icontains=q)
+
+    context = {'topics': topics}
+    return render(request, 'base/topics.html', context)
+
+
+def activityPage(request):
+    room_messages = Message.objects.all()
+    context = {"room_messages": room_messages}
+    return render(request, 'base/activity.html', context)
