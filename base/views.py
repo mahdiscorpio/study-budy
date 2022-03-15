@@ -1,13 +1,11 @@
 from django.http.response import Http404, HttpResponse
 from django.shortcuts import redirect, render
 from django.db.models import Q
-from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from .models import Message, Room, Topic
-from .forms import MessageForm, RoomForm, UserForm
+from .models import Message, Room, Topic, User
+from .forms import MessageForm, RoomForm, UserForm, MyUserCreationForm
 
 # Create your views here.
 # rooms = [
@@ -24,15 +22,15 @@ def loginPage(request):
         return redirect('home')
 
     if request.method == 'POST':
-        username = request.POST.get('username')
+        email = request.POST.get('email')
         password = request.POST.get('password')
         try:
-            User.objects.get(username=username)
+            User.objects.get(email=email)
         except:
             messages.error(request, 'User Does Not Exist!')
 
         # authenticate either returns a User model or None
-        user = authenticate(request, username=username, password=password)
+        user = authenticate(request, email=email, password=password)
 
         if user is not None:
             # creates session in our sessions table in database and gives the user's browser a cookie
@@ -40,7 +38,7 @@ def loginPage(request):
             return redirect('home')
         else:
             messages.error(
-                request, 'Either Username or Password are incorrect!')
+                request, 'Either Email or Password are incorrect!')
 
     context = {'page': page}
     return render(request, 'base/login_register.html', context)
@@ -53,9 +51,9 @@ def logoutUser(request):
 
 
 def registerPage(request):
-    form = UserCreationForm()
+    form = MyUserCreationForm()
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = MyUserCreationForm(request.POST)
         if form.is_valid():
             # freezing the form and saving the created user in a variable
             user = form.save(commit=False)
@@ -211,7 +209,7 @@ def updateUser(request):
     user = request.user
     form = UserForm(instance=user)
     if request.method == "POST":
-        form = UserForm(request.POST, instance=user)
+        form = UserForm(request.POST, request.FILES, instance=user)
         if form.is_valid():
             form.save()
             return redirect('user-profile', pk=user.id)
