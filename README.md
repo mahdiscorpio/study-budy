@@ -1,2 +1,2 @@
 # study-budy
-7 Hour YouTube Django course project
+Study Rooms to join and start interacting with people all over the world.
